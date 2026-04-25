@@ -212,20 +212,21 @@ export default function CourbeTauxMAD() {
         const res = await fetch(`${base}/courbe?date=${iso}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         main = await res.json();
-        if (main.found) {
-          await putCache({ ...cache, [iso]: main });
-          // Mise à jour de l'historique
-          setHistory(prevH => {
-            const newH = [iso, ...prevH.filter(d => d !== iso)].slice(0, 20);
-            saveHistory(newH);
-            return newH;
-          });
-        }
+        if (main.found) await putCache({ ...cache, [iso]: main });
       } catch (e) {
         setError(`Impossible de joindre le serveur (${base}). Vérifiez que api.py tourne.`);
         setLoading(false);
         return;
       }
+    }
+
+    /* Mise à jour historique dès que les données sont trouvées */
+    if (main && main.found) {
+      setHistory(prevH => {
+        const newH = [iso, ...prevH.filter(d => d !== iso)].slice(0, 20);
+        saveHistory(newH);
+        return newH;
+      });
     }
 
     /* Courbe veille */
