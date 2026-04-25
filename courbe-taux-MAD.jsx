@@ -51,7 +51,7 @@ const getCache  = async () => { try { const r = await window.storage.get(KC); re
 const putCache  = async (c) => { try { await window.storage.set(KC, JSON.stringify(c)); } catch {} };
 const getLast   = async () => { try { const r = await window.storage.get(KL); return r ? r.value : null; } catch { return null; } };
 const putLast   = async (v) => { try { await window.storage.set(KL, v); } catch {} };
-const getSavedIP = async () => { try { const r = await window.storage.get(KIP); return r ? r.value : "192.168.0.187"; } catch { return "192.168.0.187"; } };
+const getSavedIP = async () => { try { const r = await window.storage.get(KIP); return r ? r.value : "https://simoalm-bam-api.hf.space"; } catch { return "https://simoalm-bam-api.hf.space"; } };
 const saveIP    = async (v) => { try { await window.storage.set(KIP, v); } catch {} };
 
 /* ── Tooltip ── */
@@ -75,9 +75,9 @@ function Tip({ active, payload, label }) {
    COMPOSANT PRINCIPAL
 ═══════════════════════════════════════════════════════════ */
 export default function CourbeTauxMAD() {
-  const [serverIP,   setServerIP]   = useState("192.168.0.187");
-  const [serverPort, setServerPort] = useState("5000");
-  const [ipInput,    setIpInput]    = useState("192.168.0.187");
+  const [serverIP,   setServerIP]   = useState("https://simoalm-bam-api.hf.space");
+  const [serverPort, setServerPort] = useState("");
+  const [ipInput,    setIpInput]    = useState("https://simoalm-bam-api.hf.space");
   const [serverOk,   setServerOk]   = useState(null);
 
   const [selDate,    setSelDate]    = useState(todayISO());
