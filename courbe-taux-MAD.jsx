@@ -234,7 +234,22 @@ export default function CourbeTauxMAD() {
     }
 
     /* Courbe veille */
-    // ... existant ...
+    let pIso = prevBizDay(iso);
+    setPrevIso(pIso);
+    let prev = cache[pIso];
+    if (!prev) {
+      try {
+        const res = await fetch(`${base}/courbe?date=${pIso}`);
+        if (res.ok) {
+          prev = await res.json();
+          if (prev.found) await putCache({ ...cache, [pIso]: prev });
+        }
+      } catch (e) {}
+    }
+    setDataPrev(prev || null);
+    await putLast(iso);
+    setLastDate(iso);
+    setLoading(false);
   };
 
   const loadRange = async () => {
