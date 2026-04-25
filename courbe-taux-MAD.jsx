@@ -339,7 +339,7 @@ export default function CourbeTauxMAD() {
         {/* ── Bloc connexion serveur ── */}
         <div style={{background:"rgba(0,0,0,.25)",border:"1px solid rgba(255,255,255,.07)",
           borderRadius:10,padding:"10px 14px",marginBottom:12}}>
-          <p style={{fontSize:8,color:"#2a4a38",letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>
+          <p style={{fontSize:9,color:"#a0b0a8",letterSpacing:1,textTransform:"uppercase",marginBottom:4,fontWeight:600}}>
             🖥️ Adresse du serveur Python (api.py)
           </p>
           <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -440,9 +440,9 @@ export default function CourbeTauxMAD() {
               ].map(k=>(
                 <div key={k.l} style={{flex:"1 1 100px",background:"rgba(255,255,255,.02)",
                   border:"1px solid rgba(255,255,255,.06)",borderRadius:8,padding:"8px 11px"}}>
-                  <p style={{fontSize:7,color:"#1a3020",letterSpacing:2,textTransform:"uppercase"}}>{k.l}</p>
+                  <p style={{fontSize:8,color:"#a0b0a8",letterSpacing:1,textTransform:"uppercase",fontWeight:600}}>{k.l}</p>
                   <p style={{fontSize:15,color:"#dde8d8",fontWeight:700,lineHeight:1.3}}>{k.v}</p>
-                  <p style={{fontSize:7,color:"#122018",marginTop:1}}>{k.s}</p>
+                  <p style={{fontSize:7,color:"#4a6a5a",marginTop:1}}>{k.s}</p>
                 </div>
               ))}
             </div>
@@ -718,8 +718,8 @@ export default function CourbeTauxMAD() {
         {/* Footer */}
         <div style={{marginTop:18,paddingTop:12,borderTop:"1px solid rgba(255,255,255,.04)",
           display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
-          <p style={{fontSize:7,color:"#0a1a10"}}>BANK AL-MAGHRIB · BDT · SCRAPING RÉEL + INTERPOLATION LINÉAIRE TMP.PY</p>
-          <p style={{fontSize:7,color:"#0a1a10"}}>Jours ouvrables · Données disponibles dès 15h00</p>
+          <p style={{fontSize:8,color:"#4a6a5a"}}>BANK AL-MAGHRIB · BDT · SCRAPING RÉEL + INTERPOLATION LINÉAIRE TMP.PY</p>
+          <p style={{fontSize:8,color:"#4a6a5a"}}>Jours ouvrables · Données disponibles dès 15h00</p>
         </div>
       </div>
     </div>
