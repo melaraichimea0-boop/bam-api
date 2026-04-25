@@ -110,6 +110,38 @@ export default function CourbeTauxMAD() {
     return `https://${ip}`;
   }, [serverIP, serverPort]);
 
+  const [customMat, setCustomMat] = useState("");
+  const [customRate, setCustomRate] = useState(null);
+
+  /* ── Interpolation Ponctuelle ── */
+  const interpolateRate = (targetL) => {
+    if (!data) return null;
+    const { L_years, rates } = data;
+    
+    // Extrapolation plate (Flat)
+    if (targetL <= L_years[0]) return rates[0];
+    if (targetL >= L_years[L_years.length - 1]) return rates[rates.length - 1];
+
+    // Interpolation Linéaire
+    for (let i = 0; i < L_years.length - 1; i++) {
+      const x0 = L_years[i], x1 = L_years[i+1];
+      const y0 = rates[i],   y1 = rates[i+1];
+      if (targetL >= x0 && targetL <= x1) {
+        return y0 + (y1 - y0) * (targetL - x0) / (x1 - x0);
+      }
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const val = parseFloat(customMat);
+    if (!isNaN(val) && data) {
+      setCustomRate(interpolateRate(val));
+    } else {
+      setCustomRate(null);
+    }
+  }, [customMat, data]);
+
   /* ── init ── */
   useEffect(() => {
     (async () => {
@@ -633,6 +665,52 @@ export default function CourbeTauxMAD() {
                   <span style={{fontSize:10,color:"#3a6a4a"}}>{pt.date_echeance}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ─── CALCULATEUR PONCTUEL ─── */}
+        {!loading && data?.found && (
+          <div style={{
+            background: "rgba(0, 210, 140, 0.05)",
+            border: "1px solid rgba(0, 210, 140, 0.2)",
+            borderRadius: 16, padding: "20px 24px", marginTop: 24,
+            display: "flex", flexDirection: "column", gap: 14
+          }}>
+            <h3 style={{ margin: 0, fontSize: 16, color: "#00d28c", display: "flex", alignItems: "center", gap: 8, letterSpacing: 0.5 }}>
+              <span style={{ fontSize: 20 }}>🧮</span> Calculateur de Taux Ponctuel
+            </h3>
+            <p style={{ margin: 0, fontSize: 12, color: "rgba(221, 232, 216, 0.5)", lineHeight: 1.4 }}>
+              Obtenez le taux exact pour une maturité spécifique (ex: 2.5 ans) via interpolation linéaire.
+            </p>
+            
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <label style={{ display: "block", fontSize: 10, color: "#00d28c", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
+                  Maturité (en années)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ex: 2.5"
+                  value={customMat}
+                  onChange={(e) => setCustomMat(e.target.value)}
+                  style={{
+                    width: "100%", background: "#04080f", border: "1px solid rgba(0, 210, 140, 0.4)",
+                    color: "#00d28c", padding: "10px 14px", borderRadius: 8, fontSize: 15, outline: "none",
+                    fontFamily: "monospace"
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: 1, minWidth: 150, background: "#04080f", border: "1px solid rgba(221, 232, 216, 0.08)", borderRadius: 12, padding: "10px 18px" }}>
+                <span style={{ display: "block", fontSize: 10, color: "rgba(221, 232, 216, 0.3)", marginBottom: 2, textTransform: "uppercase" }}>
+                  TAUX INTERPOLÉ
+                </span>
+                <span style={{ fontSize: 24, fontWeight: 800, color: customRate !== null ? "#00d28c" : "#1a3a2a", fontFamily: "monospace" }}>
+                  {customRate !== null ? (customRate * 100).toFixed(3) + "%" : "---"}
+                </span>
+              </div>
             </div>
           </div>
         )}
