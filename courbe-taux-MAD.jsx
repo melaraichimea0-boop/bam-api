@@ -244,6 +244,7 @@ export default function CourbeTauxMAD() {
         }
       } catch (e) {}
     }
+    setData(main);
     setDataPrev(prev || null);
     await putLast(iso);
     setLastDate(iso);
