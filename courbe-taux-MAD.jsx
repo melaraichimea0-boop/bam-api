@@ -96,10 +96,6 @@ export default function CourbeTauxMAD() {
   const [lastDate,   setLastDate]   = useState(null);
   const [ready,      setReady]      = useState(false);
   const [history,    setHistory]    = useState([]);
-  const [rangeData,  setRangeData]  = useState([]);
-  const [isEvolution,setIsEvolution]= useState(false);
-  const [isAnim,    setIsAnim]     = useState(false);
-  const [rangeStart, setRangeStart] = useState("");
 
   const apiBase = useCallback(() => {
     const ip = serverIP.trim();
@@ -199,36 +195,32 @@ export default function CourbeTauxMAD() {
 
   /* ── Chargement données ── */
   const load = useCallback(async (iso, force = false, ip = serverIP) => {
-    setLoading(true); setError(""); 
-    const base = apiBase();
-    const cache = await getCache();
+    setLoading(true);
+    setError("");
+    setData(null);
+    setDataPrev(null);
+
     const pIso = prevBizDay(iso);
     setPrevIso(pIso);
+    const base = apiBase();
+    const cache = await getCache();
 
-    // 1. Charger courbe principale
+    /* Courbe principale */
     let main = force ? null : cache[iso];
     if (!main) {
       try {
-        const r = await fetch(`${base}/courbe?date=${iso}`);
-        main = await r.json();
+        const res = await fetch(`${base}/courbe?date=${iso}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        main = await res.json();
         if (main.found) await putCache({ ...cache, [iso]: main });
       } catch (e) {
-        setError("Erreur serveur principal");
-        setLoading(false); return;
+        setError(`Impossible de joindre le serveur (${base}). Vérifiez que api.py tourne.`);
+        setLoading(false);
+        return;
       }
     }
 
-    // 2. Charger courbe veille pour les variations (pb)
-    let prev = cache[pIso];
-    if (!prev) {
-      try {
-        const r2 = await fetch(`${base}/courbe?date=${pIso}`);
-        prev = await r2.json();
-        if (prev.found) await putCache({ ...(await getCache()), [pIso]: prev });
-      } catch (e) {}
-    }
-
-    // 3. Mise à jour historique
+    /* Mise à jour historique dès que les données sont trouvées */
     if (main && main.found) {
       setHistory(prevH => {
         const newH = [iso, ...prevH.filter(d => d !== iso)].slice(0, 20);
@@ -237,47 +229,24 @@ export default function CourbeTauxMAD() {
       });
     }
 
+    /* Courbe veille */
+    let prev = cache[pIso];
+    if (!prev) {
+      try {
+        const res2 = await fetch(`${base}/courbe?date=${pIso}`);
+        if (res2.ok) {
+          prev = await res2.json();
+          if (prev.found) await putCache({ ...(await getCache()), [pIso]: prev });
+        }
+      } catch {}
+    }
+
     setData(main);
     setDataPrev(prev || null);
     await putLast(iso);
     setLastDate(iso);
     setLoading(false);
-  }, [serverIP]);
-
-  const loadRange = async () => {
-    if (!rangeStart) return alert("Choisissez une date de début");
-    setLoading(true);
-    try {
-      const base = apiBase();
-      const res = await fetch(`${base}/range?start=${rangeStart}&end=${selDate}`);
-      const d = await res.json();
-      if (d.history && d.history.length > 0) {
-        setRangeData(d.history);
-        alert(`${d.history.length} dates chargées pour l'évolution.`);
-      } else {
-        alert("Aucune donnée trouvée sur cette période.");
-      }
-    } catch (e) {
-      alert("Erreur lors du chargement de la période.");
-    }
-    setLoading(false);
-  };
-
-  const runAnimation = () => {
-    if (rangeData.length === 0) return alert("Chargez d'abord une période");
-    setIsAnim(true);
-    let i = 0;
-    const interval = setInterval(() => {
-      const entry = rangeData[i];
-      setData(prev => ({ ...prev, rates: entry.rates, date: entry.date, found: true }));
-      setSelDate(entry.date);
-      i++;
-      if (i >= rangeData.length) {
-        clearInterval(interval);
-        setIsAnim(false);
-      }
-    }, 400); // 400ms par date pour une animation fluide
-  };
+  }, [serverIP, serverPort]);
 
   /* ── Actions ── */
   const handleLoad = () => {
@@ -561,30 +530,6 @@ export default function CourbeTauxMAD() {
         {/* ─── COURBE ─── */}
         {!loading && tab==="courbe" && data?.found && (
           <div className="up">
-            <div style={{display:"flex",gap:10,marginBottom:15,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
-               <div style={{display:"flex",gap:8}}>
-                  <button className="btn" onClick={()=>setIsEvolution(!isEvolution)}
-                    style={{padding:"6px 12px",fontSize:10,borderRadius:6,background:isEvolution?"#00d28c":"rgba(255,255,255,.05)",color:isEvolution?"#04080f":"#00d28c",border:"1px solid #00d28c"}}>
-                    {isEvolution?"✓ MODE ÉVOLUTION ACTIVÉ":"📈 MODE ÉVOLUTION"}
-                  </button>
-               </div>
-               {isEvolution && (
-                 <div className="up" style={{display:"flex",gap:8,alignItems:"center",background:"rgba(0,210,140,.05)",padding:"4px 8px",borderRadius:8}}>
-                    <span style={{fontSize:9,color:"#4a8a64"}}>DU</span>
-                    <input type="date" value={rangeStart} onChange={e=>setRangeStart(e.target.value)}
-                      style={{background:"none",border:"none",color:"#00d28c",fontSize:11,outline:"none"}}/>
-                    <button className="btn" onClick={loadRange} disabled={loading}
-                      style={{background:"#00d28c",color:"#04080f",padding:"4px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>CHARGER</button>
-                    {rangeData.length > 0 && (
-                      <button className="btn" onClick={runAnimation} disabled={isAnim}
-                        style={{background:"#f5a623",color:"#04080f",padding:"4px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>
-                        {isAnim?"▶ LECTURE...":"▶ PLAY ANIMATION"}
-                      </button>
-                    )}
-                 </div>
-               )}
-            </div>
-
             <div style={{display:"flex",gap:6,marginBottom:13,overflowX:"auto",paddingBottom:4}}>
               {DISPLAY.map(m=>{
                 const taux=rates[m.idx], prev=prevRates[m.idx];
