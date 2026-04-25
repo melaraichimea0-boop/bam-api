@@ -155,7 +155,10 @@ export default function CourbeTauxMAD() {
         setRangeData(d.history);
         alert(`${d.history.length} dates trouvées. Prêt pour l'animation !`);
       } else { alert("Aucune donnée sur cette période."); }
-    } catch (e) { alert("Erreur de connexion au serveur."); }
+    } catch (e) { 
+      alert("Erreur technique : " + e.message); 
+      console.error(e);
+    }
     setLoading(false);
   };
 
