@@ -199,32 +199,36 @@ export default function CourbeTauxMAD() {
 
   /* ── Chargement données ── */
   const load = useCallback(async (iso, force = false, ip = serverIP) => {
-    setLoading(true);
-    setError("");
-    setData(null);
-    setDataPrev(null);
-
-    const pIso = prevBizDay(iso);
-    setPrevIso(pIso);
+    setLoading(true); setError(""); 
     const base = apiBase();
     const cache = await getCache();
+    const pIso = prevBizDay(iso);
+    setPrevIso(pIso);
 
-    /* Courbe principale */
+    // 1. Charger courbe principale
     let main = force ? null : cache[iso];
     if (!main) {
       try {
-        const res = await fetch(`${base}/courbe?date=${iso}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        main = await res.json();
+        const r = await fetch(`${base}/courbe?date=${iso}`);
+        main = await r.json();
         if (main.found) await putCache({ ...cache, [iso]: main });
       } catch (e) {
-        setError(`Impossible de joindre le serveur (${base}). Vérifiez que api.py tourne.`);
-        setLoading(false);
-        return;
+        setError("Erreur serveur principal");
+        setLoading(false); return;
       }
     }
 
-    /* Mise à jour historique dès que les données sont trouvées */
+    // 2. Charger courbe veille pour les variations (pb)
+    let prev = cache[pIso];
+    if (!prev) {
+      try {
+        const r2 = await fetch(`${base}/courbe?date=${pIso}`);
+        prev = await r2.json();
+        if (prev.found) await putCache({ ...(await getCache()), [pIso]: prev });
+      } catch (e) {}
+    }
+
+    // 3. Mise à jour historique
     if (main && main.found) {
       setHistory(prevH => {
         const newH = [iso, ...prevH.filter(d => d !== iso)].slice(0, 20);
@@ -233,23 +237,12 @@ export default function CourbeTauxMAD() {
       });
     }
 
-    /* Courbe veille */
-    let prev = cache[pIso];
-    if (!prev) {
-      try {
-        const res = await fetch(`${base}/courbe?date=${pIso}`);
-        if (res.ok) {
-          prev = await res.json();
-          if (prev.found) await putCache({ ...cache, [pIso]: prev });
-        }
-      } catch (e) {}
-    }
     setData(main);
     setDataPrev(prev || null);
     await putLast(iso);
     setLastDate(iso);
     setLoading(false);
-  }, [serverIP, serverPort]);
+  }, [serverIP]);
 
   const loadRange = async () => {
     if (!rangeStart) return alert("Choisissez une date de début");
