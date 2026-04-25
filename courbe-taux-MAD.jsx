@@ -538,13 +538,13 @@ export default function CourbeTauxMAD() {
                   <div key={m.lbl} style={{minWidth:74,background:"rgba(255,255,255,.022)",
                     border:"1px solid rgba(255,255,255,.055)",borderRadius:10,
                     padding:"8px 6px 6px",textAlign:"center"}}>
-                    <p style={{fontSize:7,color:"#1a3020",letterSpacing:.8,
-                      textTransform:"uppercase",marginBottom:2}}>{m.lbl}</p>
+                    <p style={{fontSize:8,color:"#a0b0a8",letterSpacing:1,
+                      textTransform:"uppercase",marginBottom:2,fontWeight:600}}>{m.lbl}</p>
                     <p style={{fontSize:14,color:"#dde8d8",fontWeight:700,lineHeight:1.3}}>
                       {taux!=null?(taux*100).toFixed(2):"—"}%
                     </p>
                     <p style={{fontSize:8,marginTop:1,
-                      color:bps===null?"#1a3020":bps<0?"#00d28c":bps>0?"#ff6b6b":"#888"}}>
+                      color:bps===null?"#2a4a38":bps<0?"#00d28c":bps>0?"#ff6b6b":"#888"}}>
                       {bps===null?"—":bps>0?`▲ ${bps}pb`:bps<0?`▼ ${Math.abs(bps)}pb`:"= 0pb"}
                     </p>
                   </div>
@@ -568,10 +568,10 @@ export default function CourbeTauxMAD() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.035)"/>
                   <XAxis dataKey="label"
-                    tick={{fill:"#2a4a38",fontSize:9,fontFamily:"monospace"}}
+                    tick={{fill:"#4a6a5a",fontSize:9,fontFamily:"monospace"}}
                     axisLine={{stroke:"rgba(255,255,255,.06)"}} tickLine={false}/>
                   <YAxis domain={[minR,maxR]} tickLine={false} axisLine={false}
-                    tick={{fill:"#2a4a38",fontSize:8,fontFamily:"monospace"}}
+                    tick={{fill:"#4a6a5a",fontSize:8,fontFamily:"monospace"}}
                     tickFormatter={v=>`${(v*100).toFixed(1)}%`}/>
                   <Tooltip content={<Tip/>}/>
                   <ReferenceLine y={0.0225} stroke="rgba(245,166,35,.2)" strokeDasharray="6 4"
