@@ -768,9 +768,12 @@ export default function CourbeTauxMAD() {
 
         {/* Footer */}
         <div style={{marginTop:18,paddingTop:12,borderTop:"1px solid rgba(255,255,255,.04)",
-          display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
-          <p style={{fontSize:8,color:"#4a6a5a"}}>BANK AL-MAGHRIB · BDT · SCRAPING RÉEL + INTERPOLATION LINÉAIRE TMP.PY</p>
-          <p style={{fontSize:8,color:"#4a6a5a"}}>Jours ouvrables · Données disponibles dès 15h00</p>
+          display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:6,alignItems:"center"}}>
+          <div>
+            <p style={{fontSize:8,color:"#4a6a5a",fontWeight:700}}>© 2026 ELARAICHI MOHAMED · PROPRIÉTÉ RÉSERVÉE</p>
+            <p style={{fontSize:7,color:"#4a6a5a",marginTop:2}}>BANK AL-MAGHRIB · BDT · SCRAPING RÉEL + INTERPOLATION LINÉAIRE</p>
+          </div>
+          <p style={{fontSize:7,color:"#4a6a5a",textAlign:"right"}}>Jours ouvrables · Données disponibles dès 15h00</p>
         </div>
       </div>
     </div>
