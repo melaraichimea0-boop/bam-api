@@ -248,7 +248,7 @@ export default function CourbeTauxMAD() {
     await putLast(iso);
     setLastDate(iso);
     setLoading(false);
-  };
+  }, [serverIP, serverPort]);
 
   const loadRange = async () => {
     if (!rangeStart) return alert("Choisissez une date de début");
