@@ -115,18 +115,20 @@ export default function CourbeTauxMAD() {
 
   /* ── Interpolation Ponctuelle ── */
   const interpolateRate = (targetL) => {
-    if (!data) return null;
-    const { L_years, rates } = data;
+    if (!data || !data.rates) return null;
+    const rates = data.rates;
     
     // Extrapolation plate (Flat)
-    if (targetL <= L_years[0]) return rates[0];
-    if (targetL >= L_years[L_years.length - 1]) return rates[rates.length - 1];
+    if (targetL <= L_YEARS[0]) return rates[0];
+    if (targetL >= L_YEARS[L_YEARS.length - 1]) return rates[rates.length - 1];
 
     // Interpolation Linéaire
-    for (let i = 0; i < L_years.length - 1; i++) {
-      const x0 = L_years[i], x1 = L_years[i+1];
+    for (let i = 0; i < L_YEARS.length - 1; i++) {
+      const x0 = L_YEARS[i], x1 = L_YEARS[i+1];
       const y0 = rates[i],   y1 = rates[i+1];
+      
       if (targetL >= x0 && targetL <= x1) {
+        if (y0 == null || y1 == null) return null;
         return y0 + (y1 - y0) * (targetL - x0) / (x1 - x0);
       }
     }
@@ -267,9 +269,9 @@ export default function CourbeTauxMAD() {
   const minR   = validR.length ? Math.min(...validR)-0.003 : 0.02;
   const maxR   = validR.length ? Math.max(...validR)+0.003 : 0.045;
 
-  const spreadVal   = rates[7]!=null && rates[16]!=null ? Math.round((rates[16]-rates[7])*10000)+" pb" : "--";
+  const spreadVal   = rates[7]!=null && rates[17]!=null ? Math.round((rates[17]-rates[7])*10000)+" pb" : "--";
   const avgShortVal = rates[3]!=null && rates[5]!=null && rates[6]!=null ? ((rates[3]+rates[5]+rates[6])/3*100).toFixed(3)+"%" : "--";
-  const avgLongVal  = rates[13]!=null && rates[14]!=null && rates[15]!=null ? ((rates[13]+rates[14]+rates[15])/3*100).toFixed(3)+"%" : "--";
+  const avgLongVal  = rates[13]!=null && rates[14]!=null && rates[15]!=null && rates[16]!=null && rates[17]!=null ? ((rates[13]+rates[14]+rates[15]+rates[16]+rates[17])/5*100).toFixed(3)+"%" : "--";
   const overnightVal= overnight!=null ? (overnight*100).toFixed(3)+"%" : "--";
 
   /* ════════════════════════ RENDER ════════════════════════ */
