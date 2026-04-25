@@ -51,7 +51,7 @@
 
         async function init() {
             try {
-                const response = await fetch('courbe-taux-MAD.jsx');
+                const response = await fetch('courbe-taux-MAD.jsx?v=' + Date.now());
                 if (!response.ok) throw new Error("Fichier courbe-taux-MAD.jsx introuvable.");
                 
                 let code = await response.text();
