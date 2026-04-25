@@ -234,8 +234,6 @@ export default function CourbeTauxMAD() {
     }
 
     /* Courbe veille */
-    let pIso = prevBizDay(iso);
-    setPrevIso(pIso);
     let prev = cache[pIso];
     if (!prev) {
       try {
