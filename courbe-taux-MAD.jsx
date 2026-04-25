@@ -284,23 +284,6 @@ export default function CourbeTauxMAD() {
       }
     }, 400); // 400ms par date pour une animation fluide
   };
-    let prev = cache[pIso];
-    if (!prev) {
-      try {
-        const res2 = await fetch(`${base}/courbe?date=${pIso}`);
-        if (res2.ok) {
-          prev = await res2.json();
-          if (prev.found) await putCache({ ...(await getCache()), [pIso]: prev });
-        }
-      } catch {}
-    }
-
-    setData(main);
-    setDataPrev(prev || null);
-    await putLast(iso);
-    setLastDate(iso);
-    setLoading(false);
-  }, [serverIP, serverPort]);
 
   /* ── Actions ── */
   const handleLoad = () => {
