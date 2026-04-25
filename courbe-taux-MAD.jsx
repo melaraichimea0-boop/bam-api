@@ -51,6 +51,8 @@ const getCache  = async () => { try { const r = await window.storage.get(KC); re
 const putCache  = async (c) => { try { await window.storage.set(KC, JSON.stringify(c)); } catch {} };
 const getLast   = async () => { try { const r = await window.storage.get(KL); return r ? r.value : null; } catch { return null; } };
 const putLast   = async (v) => { try { await window.storage.set(KL, v); } catch {} };
+const getHistory = async () => { try { const r = await window.storage.get("bkam_history"); return r ? JSON.parse(r.value) : []; } catch { return []; } };
+const saveHistory = async (h) => { try { await window.storage.set("bkam_history", JSON.stringify(h.slice(0, 20))); } catch {} };
 const getSavedIP = async () => { try { const r = await window.storage.get(KIP); return r ? r.value : "https://simoalm-bam-api.hf.space"; } catch { return "https://simoalm-bam-api.hf.space"; } };
 const saveIP    = async (v) => { try { await window.storage.set(KIP, v); } catch {} };
 
@@ -93,6 +95,7 @@ export default function CourbeTauxMAD() {
   const [prevIso,    setPrevIso]    = useState(null);
   const [lastDate,   setLastDate]   = useState(null);
   const [ready,      setReady]      = useState(false);
+  const [history,    setHistory]    = useState([]);
 
   const apiBase = useCallback(() => {
     const ip = serverIP.trim();
@@ -147,9 +150,10 @@ export default function CourbeTauxMAD() {
   /* ── init ── */
   useEffect(() => {
     (async () => {
-      const [ld, savedIP] = await Promise.all([getLast(), getSavedIP()]);
+      const [ld, savedIP, hist] = await Promise.all([getLast(), getSavedIP(), getHistory()]);
       if (savedIP) { setServerIP(savedIP); setIpInput(savedIP); }
       if (ld) { setLastDate(ld); setSelDate(ld); setInputDate(ld); }
+      setHistory(hist);
       setReady(true);
     })();
   }, []);
@@ -208,7 +212,15 @@ export default function CourbeTauxMAD() {
         const res = await fetch(`${base}/courbe?date=${iso}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         main = await res.json();
-        if (main.found) await putCache({ ...cache, [iso]: main });
+        if (main.found) {
+          await putCache({ ...cache, [iso]: main });
+          // Mise à jour de l'historique
+          setHistory(prevH => {
+            const newH = [iso, ...prevH.filter(d => d !== iso)].slice(0, 20);
+            saveHistory(newH);
+            return newH;
+          });
+        }
       } catch (e) {
         setError(`Impossible de joindre le serveur (${base}). Vérifiez que api.py tourne.`);
         setLoading(false);
@@ -454,14 +466,14 @@ export default function CourbeTauxMAD() {
 
       {/* ══ ONGLETS ══ */}
       <div style={{display:"flex",borderBottom:"1px solid rgba(255,255,255,.06)",
-        padding:"0 18px",background:"#060c18"}}>
-        {["courbe","tableau","brut"].map(t=>(
+        padding:"0 18px",background:"#060c18",overflowX:"auto"}}>
+        {["courbe","tableau","brut","histo"].map(t=>(
           <button key={t} className="btn" onClick={()=>setTab(t)}
-            style={{padding:"10px 16px",fontSize:9,letterSpacing:2,textTransform:"uppercase",
+            style={{padding:"10px 14px",fontSize:9,letterSpacing:1.5,textTransform:"uppercase",
               color:tab===t?"#00d28c":"#1e3a28",background:"none",
               borderBottom:tab===t?"2px solid #00d28c":"2px solid transparent",
-              fontFamily:"'IBM Plex Mono',monospace"}}>
-            {t==="courbe"?"📈 COURBE":t==="tableau"?"📊 TABLEAU":"🔬 BRUT"}
+              fontFamily:"'IBM Plex Mono',monospace",whiteSpace:"nowrap"}}>
+            {t==="courbe"?"📈 COURBE":t==="tableau"?"📊 TABLEAU":t==="brut"?"🔬 BRUT":"🕒 HISTO"}
           </button>
         ))}
         <div style={{flex:1}}/>
@@ -668,6 +680,42 @@ export default function CourbeTauxMAD() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ─── HISTORIQUE ─── */}
+        {!loading && tab==="histo" && (
+          <div className="up">
+            <div style={{background:"rgba(0,210,140,.03)",border:"1px solid rgba(0,210,140,.12)",
+              borderRadius:8,padding:"12px",marginBottom:16}}>
+              <p style={{fontSize:10,color:"#4a8a64"}}>Dates récemment consultées (cliquez pour charger)</p>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {history.length === 0 ? (
+                <p style={{fontSize:12,color:"#1e3a28",textAlign:"center",padding:20}}>Aucun historique pour le moment</p>
+              ) : (
+                history.map(date => (
+                  <button key={date} className="btn rh" 
+                    onClick={() => { setInputDate(date); setSelDate(date); setTab("courbe"); }}
+                    style={{
+                      background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)",
+                      borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between",
+                      alignItems: "center", width: "100%", color: "#dde8d8"
+                    }}>
+                    <span style={{fontSize:14,fontWeight:700}}>{fmtFR(date)}</span>
+                    <span style={{fontSize:10,color:date===selDate?"#00d28c":"#3a6a4a"}}>
+                      {date === selDate ? "Actuel ●" : "Charger →"}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+            {history.length > 0 && (
+              <button className="btn" onClick={() => { setHistory([]); saveHistory([]); }}
+                style={{marginTop:20,fontSize:9,color:"#ff6b6b",background:"none",width:"100%",textAlign:"center"}}>
+                EFFACER L'HISTORIQUE
+              </button>
+            )}
           </div>
         )}
 
