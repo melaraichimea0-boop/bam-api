@@ -84,6 +84,12 @@ export default function CourbeTauxMAD() {
 
   const [selDate,    setSelDate]    = useState(todayISO());
   const [inputDate,  setInputDate]  = useState(todayISO());
+  const [rangeData,  setRangeData]  = useState([]);
+  const [isEvolution,setIsEvolution]= useState(false);
+  const [isAnim,    setIsAnim]     = useState(false);
+  const [dateDebut,  setDateDebut]  = useState("");
+  const [dateFin,    setDateFin]    = useState("");
+
   const [tab,        setTab]        = useState("courbe");
   const [showPrev,   setShowPrev]   = useState(true);
 
@@ -136,6 +142,37 @@ export default function CourbeTauxMAD() {
       }
     }
     return null;
+  };
+
+  const loadRange = async () => {
+    if (!dateDebut || !dateFin) return alert("Choisissez les deux dates (Début et Fin)");
+    setLoading(true);
+    try {
+      const base = apiBase();
+      const res = await fetch(`${base}/range?start=${dateDebut}&end=${dateFin}`);
+      const d = await res.json();
+      if (d.history && d.history.length > 0) {
+        setRangeData(d.history);
+        alert(`${d.history.length} dates trouvées. Prêt pour l'animation !`);
+      } else { alert("Aucune donnée sur cette période."); }
+    } catch (e) { alert("Erreur de connexion au serveur."); }
+    setLoading(false);
+  };
+
+  const runAnimation = () => {
+    if (rangeData.length === 0) return alert("Chargez d'abord une période");
+    setIsAnim(true);
+    let i = 0;
+    const interval = setInterval(() => {
+      const entry = rangeData[i];
+      setData(prev => ({ ...prev, rates: entry.rates, date: entry.date, found: true }));
+      setSelDate(entry.date);
+      i++;
+      if (i >= rangeData.length) {
+        clearInterval(interval);
+        setIsAnim(false);
+      }
+    }, 500); // 0.5 seconde par date
   };
 
   useEffect(() => {
