@@ -87,6 +87,13 @@ export default function CourbeTauxMAD() {
   const [tab,        setTab]        = useState("courbe");
   const [showPrev,   setShowPrev]   = useState(true);
 
+  // États pour le Mode Évolution
+  const [dateDebut,   setDateDebut]   = useState("");
+  const [dateFin,     setDateFin]     = useState("");
+  const [rangeData,   setRangeData]   = useState([]);
+  const [isEvolution, setIsEvolution] = useState(false);
+  const [isAnim,      setIsAnim]      = useState(false);
+
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState("");
 
@@ -247,6 +254,46 @@ export default function CourbeTauxMAD() {
     setLastDate(iso);
     setLoading(false);
   }, [serverIP, serverPort]);
+
+  /* ── Mode Évolution : Chargement ── */
+  const loadRange = async () => {
+    if (!dateDebut || !dateFin) return alert("Choisissez les deux dates (Début et Fin)");
+    setLoading(true);
+    try {
+      const base = apiBase();
+      const res = await fetch(`${base}/range?start=${dateDebut}&end=${dateFin}`);
+      if (!res.ok) throw new Error(`Erreur serveur: ${res.status}`);
+      const d = await res.json();
+      if (d.history && d.history.length > 0) {
+        setRangeData(d.history);
+        alert(`${d.history.length} dates trouvées. Prêt pour l'animation !`);
+      } else { 
+        alert("Aucune donnée sur cette période."); 
+      }
+    } catch (e) { 
+      alert("Erreur technique : " + e.message); 
+      console.error(e);
+    }
+    setLoading(false);
+  };
+
+  /* ── Mode Évolution : Animation ── */
+  const runAnimation = () => {
+    if (rangeData.length === 0) return alert("Chargez d'abord une période");
+    setIsAnim(true);
+    let i = 0;
+    const interval = setInterval(() => {
+      const entry = rangeData[i];
+      // On met à jour temporairement l'état principal "data"
+      setData(prevData => ({ ...prevData, rates: entry.rates, date: entry.date, found: true }));
+      setSelDate(entry.date);
+      i++;
+      if (i >= rangeData.length) {
+        clearInterval(interval);
+        setIsAnim(false);
+      }
+    }, 500); // 0.5 seconde par date
+  };
 
   /* ── Actions ── */
   const handleLoad = () => {
@@ -530,6 +577,39 @@ export default function CourbeTauxMAD() {
         {/* ─── COURBE ─── */}
         {!loading && tab==="courbe" && data?.found && (
           <div className="up">
+            
+            {/* ── PANNEAU ÉVOLUTION ── */}
+            <div style={{display:"flex",gap:10,marginBottom:15,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
+               <div style={{display:"flex",gap:8}}>
+                  <button className="btn" onClick={()=>setIsEvolution(!isEvolution)}
+                    style={{padding:"6px 12px",fontSize:10,borderRadius:6,background:isEvolution?"#00d28c":"rgba(255,255,255,.05)",color:isEvolution?"#04080f":"#00d28c",border:"1px solid #00d28c",fontWeight:"bold"}}>
+                    {isEvolution?"✓ MODE ÉVOLUTION ACTIVÉ":"📈 MODE ÉVOLUTION"}
+                  </button>
+               </div>
+               {isEvolution && (
+                 <div className="up" style={{display:"flex",gap:10,alignItems:"center",background:"rgba(0,210,140,.05)",padding:"8px 12px",borderRadius:10,border:"1px solid rgba(0,210,140,.1)"}}>
+                    <div style={{display:"flex",flexDirection:"column"}}>
+                      <span style={{fontSize:8,color:"#4a8a64",marginBottom:2,fontWeight:"bold"}}>DÉBUT</span>
+                      <input type="date" value={dateDebut} onChange={e=>setDateDebut(e.target.value)}
+                        style={{background:"none",border:"none",color:"#00d28c",fontSize:11,outline:"none"}}/>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column"}}>
+                      <span style={{fontSize:8,color:"#4a8a64",marginBottom:2,fontWeight:"bold"}}>FIN</span>
+                      <input type="date" value={dateFin} onChange={e=>setDateFin(e.target.value)}
+                        style={{background:"none",border:"none",color:"#00d28c",fontSize:11,outline:"none"}}/>
+                    </div>
+                    <button className="btn" onClick={loadRange} disabled={loading}
+                      style={{background:"#00d28c",color:"#04080f",padding:"6px 12px",borderRadius:6,fontSize:10,fontWeight:700}}>CHARGER</button>
+                    {rangeData.length > 0 && (
+                      <button className="btn" onClick={runAnimation} disabled={isAnim}
+                        style={{background:"#f5a623",color:"#04080f",padding:"6px 12px",borderRadius:6,fontSize:10,fontWeight:700}}>
+                        {isAnim?"▶ LECTURE...":"▶ DÉMARRER L'ANIMATION"}
+                      </button>
+                    )}
+                 </div>
+               )}
+            </div>
+
             <div style={{display:"flex",gap:6,marginBottom:13,overflowX:"auto",paddingBottom:4}}>
               {DISPLAY.map(m=>{
                 const taux=rates[m.idx], prev=prevRates[m.idx];
