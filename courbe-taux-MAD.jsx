@@ -61,14 +61,27 @@ function Tip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   const curr = payload.find(p => p.dataKey==="taux");
   const prev = payload.find(p => p.dataKey==="prev");
+  const debut = payload.find(p => p.dataKey==="tauxDebut");
+  const currentDate = payload[0].payload.currentDate;
+  const dateDebutStr = payload[0].payload.dateDebut;
+
   const bps  = curr?.value!=null && prev?.value!=null ? Math.round((curr.value-prev.value)*10000) : null;
+  
   return (
     <div style={{background:"rgba(4,8,15,.97)",border:"1px solid rgba(0,210,140,.3)",
       borderRadius:10,padding:"12px 16px",boxShadow:"0 8px 28px rgba(0,210,140,.1)"}}>
       <p style={{color:"#00d28c",fontFamily:"monospace",fontSize:13,fontWeight:700,marginBottom:5}}>{label}</p>
-      {curr && <p style={{color:"#dde8d8",fontFamily:"monospace",fontSize:12,margin:"2px 0"}}>Actuel : <b>{(curr.value*100).toFixed(3)}%</b></p>}
-      {prev && <p style={{color:"rgba(245,166,35,.75)",fontFamily:"monospace",fontSize:12,margin:"2px 0"}}>Veille : {(prev.value*100).toFixed(3)}%</p>}
-      {bps!=null && <p style={{color:bps<0?"#00d28c":bps>0?"#ff6b6b":"#888",fontFamily:"monospace",fontSize:11,marginTop:4}}>Δ {bps>0?"+":""}{bps} pb</p>}
+      
+      {debut && <p style={{color:"#f5a623",fontFamily:"monospace",fontSize:12,margin:"2px 0"}}>Début ({dateDebutStr}) : <b>{(debut.value*100).toFixed(3)}%</b></p>}
+      
+      {curr && <p style={{color:"#dde8d8",fontFamily:"monospace",fontSize:12,margin:"2px 0"}}>
+         {debut ? `Fin (${currentDate}) : ` : currentDate ? `Actuel (${currentDate}) : ` : `Actuel : `}
+         <b>{(curr.value*100).toFixed(3)}%</b>
+      </p>}
+      
+      {prev && !debut && <p style={{color:"rgba(245,166,35,.75)",fontFamily:"monospace",fontSize:12,margin:"2px 0"}}>Veille : {(prev.value*100).toFixed(3)}%</p>}
+      
+      {bps!=null && !debut && <p style={{color:bps<0?"#00d28c":bps>0?"#ff6b6b":"#888",fontFamily:"monospace",fontSize:11,marginTop:4}}>Δ {bps>0?"+":""}{bps} pb</p>}
     </div>
   );
 }
@@ -93,6 +106,7 @@ export default function CourbeTauxMAD() {
   const [rangeData,   setRangeData]   = useState([]);
   const [isEvolution, setIsEvolution] = useState(false);
   const [isAnim,      setIsAnim]      = useState(false);
+  const [animFinished,setAnimFinished]= useState(false);
 
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState("");
@@ -259,6 +273,7 @@ export default function CourbeTauxMAD() {
   const loadRange = async () => {
     if (!dateDebut || !dateFin) return alert("Choisissez les deux dates (Début et Fin)");
     setLoading(true);
+    setAnimFinished(false);
     try {
       const base = apiBase();
       const res = await fetch(`${base}/range?start=${dateDebut}&end=${dateFin}`);
@@ -281,6 +296,7 @@ export default function CourbeTauxMAD() {
   const runAnimation = () => {
     if (rangeData.length === 0) return alert("Chargez d'abord une période");
     setIsAnim(true);
+    setAnimFinished(false);
     let i = 0;
     const interval = setInterval(() => {
       const entry = rangeData[i];
@@ -291,8 +307,9 @@ export default function CourbeTauxMAD() {
       if (i >= rangeData.length) {
         clearInterval(interval);
         setIsAnim(false);
+        setAnimFinished(true);
       }
-    }, 500); // 0.5 seconde par date
+    }, 1500); // 1.5 seconde par date
   };
 
   /* ── Actions ── */
@@ -312,11 +329,19 @@ export default function CourbeTauxMAD() {
   const rawPts    = data?.raw_points || [];
   const overnight = data?.overnight ?? null;
 
-  const chartData = DISPLAY.map(m => ({
-    label: m.lbl,
-    taux:  rates[m.idx]     ?? null,
-    prev:  prevRates[m.idx] ?? null,
-  }));
+  const chartData = DISPLAY.map(m => {
+    const base = {
+      label: m.lbl,
+      taux:  rates[m.idx]     ?? null,
+      prev:  isEvolution ? null : (prevRates[m.idx] ?? null),
+      currentDate: data?.date ?? null,
+    };
+    if (animFinished && rangeData.length > 0) {
+       base.tauxDebut = rangeData[0].rates[m.idx] ?? null;
+       base.dateDebut = rangeData[0].date;
+    }
+    return base;
+  });
 
   const tableData = MAT_LABELS.map((lbl, idx) => {
     const taux = rates[idx]     ?? null;
@@ -581,7 +606,7 @@ export default function CourbeTauxMAD() {
             {/* ── PANNEAU ÉVOLUTION ── */}
             <div style={{display:"flex",gap:10,marginBottom:15,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
                <div style={{display:"flex",gap:8}}>
-                  <button className="btn" onClick={()=>setIsEvolution(!isEvolution)}
+                  <button className="btn" onClick={()=>{setIsEvolution(!isEvolution); setAnimFinished(false);}}
                     style={{padding:"6px 12px",fontSize:10,borderRadius:6,background:isEvolution?"#00d28c":"rgba(255,255,255,.05)",color:isEvolution?"#04080f":"#00d28c",border:"1px solid #00d28c",fontWeight:"bold"}}>
                     {isEvolution?"✓ MODE ÉVOLUTION ACTIVÉ":"📈 MODE ÉVOLUTION"}
                   </button>
@@ -656,13 +681,27 @@ export default function CourbeTauxMAD() {
                   <Tooltip content={<Tip/>}/>
                   <ReferenceLine y={0.0225} stroke="rgba(245,166,35,.2)" strokeDasharray="6 4"
                     label={{value:"TD 2.25%",fill:"rgba(245,166,35,.5)",fontSize:8}}/>
-                  {showPrev&&dataPrev?.found&&(
+                  
+                  {/* Courbe de la veille (désactivée en mode évolution) */}
+                  {showPrev && !isEvolution && dataPrev?.found && (
                     <Area type="monotone" dataKey="prev"
                       stroke="#f5a623" strokeWidth={1.5} strokeDasharray="5 3"
                       fill="url(#gA)" dot={false} connectNulls/>
                   )}
+                  
+                  {/* Courbe de DÉBUT (uniquement à la fin de l'animation) */}
+                  {animFinished && (
+                    <Area type="monotone" dataKey="tauxDebut"
+                      stroke="#f5a623" strokeWidth={2} fill="none" strokeDasharray="4 4"
+                      dot={{fill:"#f5a623",r:3,strokeWidth:0}}
+                      activeDot={{r:5,fill:"#f5a623",strokeWidth:0}}
+                      connectNulls/>
+                  )}
+
+                  {/* Courbe principale (Actuelle / En cours d'animation / Fin) */}
                   <Area type="monotone" dataKey="taux"
                     stroke="#00d28c" strokeWidth={2.5} fill="url(#gG)"
+                    animationDuration={isAnim ? 0 : 1500}
                     dot={{fill:"#00d28c",r:3.5,strokeWidth:2,stroke:"#04080f"}}
                     activeDot={{r:6,fill:"#00d28c",stroke:"#fff",strokeWidth:2}}
                     connectNulls/>
@@ -670,8 +709,9 @@ export default function CourbeTauxMAD() {
               </ResponsiveContainer>
               <div style={{display:"flex",gap:16,justifyContent:"center",marginTop:9,flexWrap:"wrap"}}>
                 {[
-                  {c:"#00d28c",l:fmtFR(selDate),s:true},
-                  ...(showPrev&&dataPrev?.found?[{c:"rgba(245,166,35,.8)",l:fmtFR(prevIso),s:false}]:[]),
+                  {c:"#00d28c",l: (animFinished && rangeData.length > 0) ? `Fin: ${fmtFR(selDate)}` : isAnim ? `En cours: ${fmtFR(selDate)}` : fmtFR(selDate), s:true},
+                  ...(animFinished && rangeData.length > 0 ? [{c:"#f5a623",l:`Début: ${fmtFR(rangeData[0].date)}`,s:false}] : []),
+                  ...(!isEvolution && showPrev && dataPrev?.found ? [{c:"rgba(245,166,35,.8)",l:`Veille: ${fmtFR(prevIso)}`,s:false}] : []),
                   {c:"rgba(245,166,35,.35)",l:"TD 2.25%",s:false},
                 ].map(item=>(
                   <div key={item.l} style={{display:"flex",alignItems:"center",gap:5}}>
